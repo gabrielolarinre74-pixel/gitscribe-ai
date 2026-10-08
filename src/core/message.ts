@@ -83,7 +83,7 @@ export function lint(message: string, maxHeader = 72): LintIssue[] {
 
   const m = HEADER_RE.exec(first);
   if (!m) {
-    issues.push({ level: 'error', rule: 'format', message: 'Header should look like "type(scope): subject", e.g. "fix(auth): handle expired tokens".' });
+    issues.push({ level: 'error', rule: 'format', message: 'Use "type(scope): subject", e.g. "fix(auth): handle expired tokens".' });
     const word = first.split(/\s+/)[0]!;
     if (PAST_TENSE.test(first) || THIRD_PERSON.test(first)) issues.push({ level: 'warning', rule: 'imperative', message: `Use the imperative mood: "${imperative(word)}" rather than "${word}".` });
     if (/\.$/.test(first)) issues.push({ level: 'warning', rule: 'period', message: 'Drop the full stop at the end of the subject.' });
