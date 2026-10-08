@@ -74,7 +74,7 @@ const raw = process.argv.slice(2);
 const argv = raw[0] === '_hook' ? null : cli({
   name: 'gitscribe',
   version: pkg.version,
-  help: { description: pkg.description, usage: ['gitscribe [flags] [-- git commit flags]', 'gitscribe <command> [flags]'] },
+  help: { description: 'Conventional commits, secret scanning and changelogs from your staged diff.', usage: ['gitscribe [flags] [-- git commit flags]', 'gitscribe <command> [flags]'] },
   flags: {
     all: { type: Boolean, alias: 'a', description: 'Stage every tracked change first (git add --update)' },
     generate: { type: Number, alias: 'g', description: 'How many suggestions to show (default 3)' },
