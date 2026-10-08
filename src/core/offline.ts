@@ -116,6 +116,7 @@ interface Draft {
   type: CommitType;
   subject: string;
   alt?: string;
+  altReason?: string;
   reason: string;
   breaking?: string[];
   scope?: string | null;
@@ -239,7 +240,8 @@ function draftFor(files: Analysed[]): Draft {
   if (newRoutes.length || createdFiles.length || newSyms.length >= 1 && plus.length > minus.length * 1.5) {
     const things = newRoutes.length ? [...newRoutes.map((r) => `${r} endpoint`)] : newSyms.length ? newSyms : createdFiles.map((f) => words(stem(f.path)));
     const alt = newRoutes.length && newSyms.length ? `add ${list(newSyms)}` : createdFiles.length && newSyms.length ? `add ${list(createdFiles.map((f) => words(stem(f.path))))}` : undefined;
-    return { type: 'feat', subject: `add ${list(things, newRoutes.length ? 2 : 3)}`, alt, reason: newRoutes.length ? 'New HTTP routes.' : createdFiles.length ? 'New source files.' : 'New declarations that outweigh removals.', breaking: brokenExports.length ? brokenExports : undefined };
+    const altReason = newRoutes.length ? 'Names the new function instead of the route.' : 'Names the new module instead of its functions.';
+    return { type: 'feat', subject: `add ${list(things, newRoutes.length ? 2 : 3)}`, alt, altReason, reason: newRoutes.length ? 'New HTTP routes.' : createdFiles.length ? 'New source files.' : 'New declarations that outweigh removals.', breaking: brokenExports.length ? brokenExports : undefined };
   }
 
   // Performance.
@@ -337,7 +339,7 @@ export function suggest(files: DiffFile[], opts: OfflineOptions = {}): Suggestio
   const footers = breaking ? [`BREAKING CHANGE: ${list(draft.breaking!, 4)} ${draft.breaking!.length > 1 ? 'were' : 'was'} removed.`] : [];
   const body = bodyFor(analysed);
   const testsToo = draft.type !== 'test' && analysed.some((f) => f.kind === 'test');
-  const fullBody = testsToo ? `${body}\n\nTests updated alongside the change.` : body;
+  const fullBody = testsToo ? `${body}\n\nIncludes tests.` : body;
 
   const out: Suggestion[] = [];
   const push = (s: Omit<Suggestion, 'subject'> & { subject: string }) => {
@@ -345,9 +347,14 @@ export function suggest(files: DiffFile[], opts: OfflineOptions = {}): Suggestio
     if (!out.some((o) => header(o) === header({ ...s, subject }))) out.push({ ...s, subject });
   };
   push({ type, scope, breaking, subject: draft.subject, body: analysed.length > 1 ? fullBody : undefined, footers, reason: draft.reason });
-  if (draft.alt) push({ type, scope, breaking, subject: draft.alt, body: fullBody, footers, reason: draft.reason });
-  if (scope) push({ type, scope: undefined, breaking, subject: draft.subject, body: fullBody, footers, reason: `${draft.reason} Without a scope.` });
-  else push({ type, scope, breaking, subject: draft.subject, body: fullBody, footers, reason: `${draft.reason} With a file-by-file body.` });
+  if (draft.alt) push({ type, scope, breaking, subject: draft.alt, body: fullBody, footers, reason: draft.altReason ?? draft.reason });
+  if (scope) push({ type, scope: undefined, breaking, subject: draft.subject, body: fullBody, footers, reason: 'Same message without a scope.' });
+  else if (opts.scope !== false) {
+    // Offer the folder with the most new code as a scope.
+    const top = [...meaningful].filter((f) => f.kind === 'source').sort((a, b) => b.added.length - a.added.length)[0];
+    const guess = top ? scopeOf([top.path]) : undefined;
+    if (guess) push({ type, scope: guess, breaking, subject: draft.subject, body: fullBody, footers, reason: `Scoped to ${guess}, where most of the new code is.` });
+  }
   return out.slice(0, 3);
 }
 
