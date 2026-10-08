@@ -62,7 +62,9 @@ export async function runCommit(flags: CommitFlags, gitArgs: string[] = []): Pro
 
   if (!flags.print) {
     say(`\n${ui.brand()}  ${ui.dim(`${summary(files)} staged`)}\n`);
-    for (const f of files.slice(0, 12)) say(`  ${ui.fileLine(f)}`);
+    const shown = files.slice(0, 12);
+    const width = Math.max(...shown.map((f) => (f.status === 'renamed' ? f.oldPath.length + 3 : 0) + f.path.length));
+    for (const f of shown) say(`  ${ui.fileLine(f, width)}`);
     if (files.length > 12) say(ui.dim(`  … and ${files.length - 12} more`));
     say();
   }

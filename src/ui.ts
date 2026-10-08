@@ -17,11 +17,13 @@ export function headerLine(s: Pick<Suggestion, 'type' | 'scope' | 'breaking' | '
   return `${bold(color(s.type))}${s.scope ? dim('(') + s.scope + dim(')') : ''}${s.breaking ? red(bold('!')) : ''}${dim(':')} ${bold(s.subject)}`;
 }
 
-export function fileLine(f: DiffFile): string {
+export function fileLine(f: DiffFile, width = 0): string {
   const status = { added: green('A'), deleted: red('D'), modified: yellow('M'), renamed: cyan('R') }[f.status];
+  const plain = f.status === 'renamed' ? `${f.oldPath} → ${f.path}` : f.path;
   const name = f.status === 'renamed' ? `${dim(f.oldPath + ' → ')}${f.path}` : f.path;
-  const counts = f.binary ? dim('binary') : `${green('+' + f.added.length)} ${red('-' + f.removed.length)}`;
-  return `${status}  ${name}  ${counts}  ${dim(kindOf(f.path))}`;
+  const pad = ' '.repeat(Math.max(0, width - plain.length));
+  const counts = f.binary ? dim('binary'.padEnd(9)) : `${green(('+' + f.added.length).padStart(4))} ${red(('-' + f.removed.length).padStart(4))}`;
+  return `${status}  ${name}${pad}  ${counts}  ${dim(kindOf(f.path))}`;
 }
 
 export function findingLine(f: Finding): string {
