@@ -12,14 +12,20 @@ import * as ui from './ui.js';
 
 (globalThis as { AI_SDK_LOG_WARNINGS?: boolean }).AI_SDK_LOG_WARNINGS = false;
 
-const done = (code: number | Promise<number>) =>
-  Promise.resolve(code).then((c) => process.exit(c), (e: unknown) => {
-    const err = e as Error;
-    const known = err instanceof UserError || err instanceof GitError || err instanceof ConfigError;
-    console.error(ui.fail(err.message));
-    if (!known && process.env.DEBUG) console.error(err.stack);
-    process.exit(1);
-  });
+function fail(e: unknown): never {
+  const err = e as Error;
+  const known = err instanceof UserError || err instanceof GitError || err instanceof ConfigError;
+  console.error(ui.fail(err.message));
+  if (!known && process.env.DEBUG) console.error(err.stack);
+  process.exit(1);
+}
+
+/** Run a command and exit with its code; turn thrown errors into a one-line message. */
+function done(run: () => number | Promise<number>) {
+  let result: number | Promise<number>;
+  try { result = run(); } catch (e) { fail(e); }
+  Promise.resolve(result).then((c) => process.exit(c), fail);
+}
 
 const scan = command({
   name: 'scan',
@@ -28,7 +34,7 @@ const scan = command({
     range: { type: String, description: 'Scan every commit in a range instead, e.g. main..HEAD' },
     json: { type: Boolean, description: 'Print findings as JSON' },
   },
-}, (argv) => done(runScan(argv.flags)));
+}, (argv) => done(() => runScan(argv.flags)));
 
 const changelog = command({
   name: 'changelog',
@@ -41,27 +47,27 @@ const changelog = command({
     all: { type: Boolean, description: 'Include docs, tests, chores and non-conventional commits' },
     json: { type: Boolean, description: 'Print the parsed commits and bump as JSON' },
   },
-}, (argv) => done(runChangelog(argv.flags)));
+}, (argv) => done(() => runChangelog(argv.flags)));
 
 const lintCmd = command({
   name: 'lint',
   parameters: ['[message or file]'],
   help: { description: 'Check a commit message against Conventional Commits (reads stdin when piped)' },
   flags: { strict: { type: Boolean, description: 'Fail on warnings too' } },
-}, (argv) => done(runLint(argv._.messageOrFile, argv.flags)));
+}, (argv) => done(() => runLint(argv._.messageOrFile, argv.flags)));
 
 const hook = command({
   name: 'hook',
-  parameters: ['<install|uninstall>'],
+  parameters: ['<install/uninstall>'],
   help: { description: 'Install Git hooks: message (prepare-commit-msg), lint (commit-msg) and scan (pre-commit)' },
   flags: { only: { type: String, description: 'Comma-separated subset: message, lint, scan' } },
-}, (argv) => done(runHookCommand(argv._.installUninstall, argv.flags.only)));
+}, (argv) => done(() => runHookCommand(argv._.installUninstall, argv.flags.only)));
 
 const config = command({
   name: 'config',
-  parameters: ['[list|get|set|unset|path]', '[pairs...]'],
+  parameters: ['[list/get/set/unset/path]', '[pairs...]'],
   help: { description: 'Show or change settings in ~/.gitscribe' },
-}, (argv) => done(runConfig(argv._.listGetSetUnsetPath, argv._.pairs)));
+}, (argv) => done(() => runConfig(argv._.listGetSetUnsetPath, argv._.pairs)));
 
 // Git hooks call `gitscribe _hook <name> ...args`; handled before normal parsing so it stays out of --help.
 const raw = process.argv.slice(2);
@@ -88,8 +94,8 @@ const argv = raw[0] === '_hook' ? null : cli({
 });
 
 if (raw[0] === '_hook') {
-  done(runHook(raw[1] ?? '', raw.slice(2)));
+  done(() => runHook(raw[1] ?? '', raw.slice(2)));
 } else if (argv && !argv.command) {
   const gitArgs = (argv._ as unknown as { '--'?: string[] })['--'] ?? [];
-  done(runCommit(argv.flags, gitArgs));
+  done(() => runCommit(argv.flags, gitArgs));
 }
