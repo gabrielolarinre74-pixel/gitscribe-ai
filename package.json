@@ -1,0 +1,55 @@
+{
+  "name": "gitscribe-ai",
+  "version": "1.0.0",
+  "description": "Conventional commit messages, secret scanning and changelogs from your staged diff. Works offline, or with any OpenAI-compatible model.",
+  "keywords": [
+    "git",
+    "commit",
+    "conventional-commits",
+    "changelog",
+    "secret-scanning",
+    "cli",
+    "ai"
+  ],
+  "license": "MIT",
+  "author": "Gabriel Zion",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gabrielolarinre74-pixel/gitscribe-ai.git"
+  },
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "gitscribe": "dist/cli.mjs",
+    "gsc": "dist/cli.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsx src/cli.ts",
+    "lint": "tsc --noEmit",
+    "test": "vitest run",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@ai-sdk/openai-compatible": "^3.0.65",
+    "@clack/prompts": "^1.8.1",
+    "ai": "^7.0.132",
+    "cleye": "^2.7.0",
+    "ini": "^7.0.0",
+    "kolorist": "^1.8.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/ini": "^4.1.1",
+    "@types/node": "^26.6.4",
+    "tsup": "^8.5.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}
