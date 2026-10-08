@@ -46,6 +46,14 @@ const FIX_PATTERNS: [RegExp, string][] = [
   [/(\.trim\(\)|\.toLowerCase\(\)|encodeURIComponent|escape\w*\()/, 'normalise input'],
   [/(<=|>=|length - 1|\+ ?1\b|- ?1\b)/, 'fix an off-by-one boundary'],
 ];
+const FIX_REASONS: Record<string, string> = {
+  'handle missing values': 'New null and undefined checks',
+  'handle errors': 'New error handling',
+  'validate numeric input': 'New number validation',
+  'clean up listeners and timers': 'New cleanup of listeners or timers',
+  'normalise input': 'New input normalisation',
+  'fix an off-by-one boundary': 'Changed comparison boundaries',
+};
 const PERF = /\b(useMemo|useCallback|React\.memo|memoize|lru|cache[d]?\b|Promise\.all|debounce|throttle|lazy\(|requestIdleCallback|WeakMap|createIndex|\.index\(|batch)/i;
 const ROUTE = /\b(?:app|router|server|r)\.(get|post|put|patch|delete)\(\s*['"`]([^'"`]+)['"`]|@(Get|Post|Put|Patch|Delete)(?:Mapping)?\(\s*['"]([^'"]+)['"]|@app\.route\(\s*['"]([^'"]+)['"]/;
 const DEPRECATE = /@deprecated|DeprecationWarning|\bdeprecat(e|ed|ion)\b/i;
@@ -252,7 +260,7 @@ function draftFor(files: Analysed[]): Draft {
   if (explicitFix || (fixHits.length && small && !newSyms.length)) {
     const exception = pool.flatMap((f) => f.added.filter((l) => /^\s*(\/\/|#|\*)/.test(l))).map((l) => /\b(\w+(?:Exception|Error))\b/.exec(l)?.[1]).find(Boolean);
     const label = exception ? `prevent ${exception}` : fixHits[0]?.label ?? 'correct behaviour';
-    return { type: 'fix', subject: `${label}${where}`, alt: touched[0] ? `correct ${touched[0]} behaviour` : undefined, reason: explicitFix ? 'A comment in the change mentions a bug.' : `Added ${label.replace(/^(handle|fix|validate|clean up|normalise) /, '')} checks in a small change.` };
+    return { type: 'fix', subject: `${label}${where}`, alt: touched[0] ? `correct ${touched[0]} behaviour` : undefined, reason: explicitFix ? 'A comment in the change mentions a bug.' : `${FIX_REASONS[fixHits[0]!.label] ?? 'New guards'} in a small change to existing code.` };
   }
 
   // Refactors.
